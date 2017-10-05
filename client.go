@@ -2,7 +2,7 @@ package ha
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	// "github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -131,7 +131,7 @@ func (c *Client) GetCPUUtilization(start time.Time, end time.Time) (*cloudwatch.
 	return c.get(params)
 }
 
-func (c *Client) UpdateAutoScalingGroupCount(num int64) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
+func (c *Client) UpdateAutoScalingGroupHostCount(num int64) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		panic(err)
@@ -144,6 +144,9 @@ func (c *Client) UpdateAutoScalingGroupCount(num int64) (*autoscaling.UpdateAuto
 		MinSize:              aws.Int64(num),
 	}
 
+	return autoscaling.New(sess, aws.NewConfig().WithRegion(c.Region)).UpdateAutoScalingGroup(params)
+
+	/* TODO Error handling
 	result, err := autoscaling.New(sess, aws.NewConfig().WithRegion(c.Region)).UpdateAutoScalingGroup(params)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -163,6 +166,7 @@ func (c *Client) UpdateAutoScalingGroupCount(num int64) (*autoscaling.UpdateAuto
 	}
 
 	return result, nil
+	*/
 }
 
 func (c *Client) get(params *cloudwatch.GetMetricStatisticsInput) (*cloudwatch.GetMetricStatisticsOutput, error) {
