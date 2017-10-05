@@ -5,8 +5,9 @@ import (
 	"os"
 )
 
+var version string
+
 const (
-	Version  = "v0.0.1"
 	ProgName = "heuristic-autoscaling"
 )
 
@@ -14,7 +15,7 @@ func main() {
 	cli := &ha.CLI{
 		OutStream: os.Stdout,
 		ErrStream: os.Stderr,
-		Version:   Version,
+		Version:   version,
 		Name:      ProgName,
 	}
 	os.Exit(cli.Run(os.Args))
