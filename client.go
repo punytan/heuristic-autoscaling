@@ -131,7 +131,7 @@ func (c *Client) GetCPUUtilization(start time.Time, end time.Time) (*cloudwatch.
 	return c.get(params)
 }
 
-func (c *Client) UpdateAutoScalingGroupCount(num int) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
+func (c *Client) UpdateAutoScalingGroupCount(num int64) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		panic(err)
@@ -139,9 +139,9 @@ func (c *Client) UpdateAutoScalingGroupCount(num int) (*autoscaling.UpdateAutoSc
 
 	params := &autoscaling.UpdateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(c.AutoScalingGroupName),
-		DesiredCapacity:      aws.Int64(int64(num)),
-		MaxSize:              aws.Int64(int64(num)),
-		MinSize:              aws.Int64(int64(num)),
+		DesiredCapacity:      aws.Int64(num),
+		MaxSize:              aws.Int64(num),
+		MinSize:              aws.Int64(num),
 	}
 
 	result, err := autoscaling.New(sess, aws.NewConfig().WithRegion(c.Region)).UpdateAutoScalingGroup(params)
