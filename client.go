@@ -61,10 +61,25 @@ func (c *Client) GetMaxRequestCountTrackRecord() (*float64, error) {
 			return nil, err
 		}
 
+		log.Printf("debug: ---")
 		for j := range w.Datapoints {
 			log.Printf("debug: %s %.0f", w.Datapoints[j].Timestamp.In(time.FixedZone("Asia/Tokyo", 9*60*60)), *w.Datapoints[j].Sum)
 			max = math.Max(max, *w.Datapoints[j].Sum)
 		}
+	}
+
+	w, err := c.GetRequestCount(
+		time.Now().Add(-time.Minute*time.Duration(5)),
+		time.Now(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("debug: ---")
+	for j := range w.Datapoints {
+		log.Printf("debug: %s %.0f", w.Datapoints[j].Timestamp.In(time.FixedZone("Asia/Tokyo", 9*60*60)), *w.Datapoints[j].Sum)
+		max = math.Max(max, *w.Datapoints[j].Sum)
 	}
 
 	return &max, nil
