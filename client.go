@@ -86,17 +86,19 @@ func (c *Client) GetMaxRequestCountTrackRecord() (*float64, error) {
 }
 
 func (c *Client) GetRequestCount(start time.Time, end time.Time) (*cloudwatch.GetMetricStatisticsOutput, error) {
+	var dimensions []*cloudwatch.Dimension
+	if c.AvailabilityZone == "" {
+		dimensions = []*cloudwatch.Dimension{
+			{Name: aws.String("LoadBalancerName"), Value: aws.String(c.ELBName)},
+		}
+	} else {
+		dimensions = []*cloudwatch.Dimension{
+			{Name: aws.String("LoadBalancerName"), Value: aws.String(c.ELBName)},
+			{Name: aws.String("AvailabilityZone"), Value: aws.String(c.AvailabilityZone)},
+		}
+	}
 	params := &cloudwatch.GetMetricStatisticsInput{
-		Dimensions: []*cloudwatch.Dimension{
-			{
-				Name:  aws.String("LoadBalancerName"),
-				Value: aws.String(c.ELBName),
-			},
-			{
-				Name:  aws.String("AvailabilityZone"),
-				Value: aws.String(c.AvailabilityZone),
-			},
-		},
+		Dimensions: dimensions,
 		MetricName: aws.String("RequestCount"),
 		Namespace:  aws.String("AWS/ELB"),
 		Period:     aws.Int64(int64(60)),

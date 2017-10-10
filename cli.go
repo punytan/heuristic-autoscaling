@@ -96,11 +96,6 @@ func (c *CLI) ParseArgs(args []string) *Option {
 		return nil
 	}
 
-	if option.availabilityZone == "" {
-		log.Printf("error: specify `--availability-zone` option")
-		return nil
-	}
-
 	if option.autoscalingGroupName == "" {
 		log.Printf("error: specify `--autoscaling-group-name` option")
 		return nil
