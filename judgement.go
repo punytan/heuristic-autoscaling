@@ -74,7 +74,6 @@ func (j *Judgement) Judge() *JudgeResult {
 	} else {
 		currentStatus = "NG"
 		result.executionType = Increase
-		result.desirableHostCount = int64(j.pc.EstimateNextRequiredHostCount(j.trackRecordRequestCount, j.option.lowerCPUThreshold))
 	}
 
 	log.Printf("info: Scaling strategy")
