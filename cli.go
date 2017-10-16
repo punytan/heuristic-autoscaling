@@ -68,8 +68,8 @@ func (c *CLI) ParseArgs(args []string) *Option {
 	flags.Float64Var(&option.upperCPUThreshold, "upper-cpu-threshold", 0.65, "CPU upper threshold")
 	flags.Float64Var(&option.lowerCPUThreshold, "lower-cpu-threshold", 0.45, "CPU lower threshold")
 
-	flags.Int64Var(&option.maxInstance, "max-instance", 9999, "maximum instance size")
-	flags.Int64Var(&option.minInstance, "min-instance", 1, "minimum instance size")
+	flags.Int64Var(&option.maxInstance, "max-instance", 0, "maximum instance size")
+	flags.Int64Var(&option.minInstance, "min-instance", 0, "minimum instance size")
 
 	if err := flags.Parse(args[1:]); err != nil {
 		return nil
@@ -173,12 +173,12 @@ func (c *CLI) Run(args []string) int {
 
 	if option.maxInstance < result.desirableHostCount {
 		log.Printf("warn: next desirable host count is greater than --max-instance")
-		return ExitCodeFatal
+		return ExitCodeOK
 	}
 
 	if option.minInstance > result.desirableHostCount {
 		log.Printf("warn: next desirable host count is less than --min-instance")
-		return ExitCodeFatal
+		return ExitCodeOK
 	}
 
 	log.Printf("warn: Start updating AutoScaling values")
