@@ -61,11 +61,11 @@ func (j *Judgement) Judge() *JudgeResult {
 	}
 
 	var scaleOutStatus string
-	if nextHostCountMin <= inServiceHostCount {
-		scaleOutStatus = "sufficient"
-	} else {
+	if inServiceHostCount <= (nextHostCountMin+nextHostCountMiddle)/2 {
 		scaleOutStatus = "insufficient"
 		result.executionType = Increase
+	} else {
+		scaleOutStatus = "sufficient"
 	}
 
 	var currentStatus string
