@@ -20,6 +20,17 @@ type CLI struct {
 	Name                 string
 }
 
+type arrayFlags []string
+
+func (a *arrayFlags) String() string {
+	return ""
+}
+
+func (a *arrayFlags) Set(value string) error {
+	*a = append(*a, value)
+	return nil
+}
+
 type Option struct {
 	version              bool
 	verbose              bool
@@ -28,7 +39,7 @@ type Option struct {
 	region               string
 	elbName              string
 	availabilityZone     string
-	autoscalingGroupName string
+	autoscalingGroupName arrayFlags
 	span                 int
 	upperCPUThreshold    float64
 	middleCPUThreshold   float64
@@ -63,7 +74,7 @@ func (c *CLI) ParseArgs(args []string) *Option {
 	flags.StringVar(&option.region, "region", "", "AWS region")
 	flags.StringVar(&option.elbName, "elb-name", "", "target ELB name")
 	flags.StringVar(&option.availabilityZone, "availability-zone", "", "target availability zone")
-	flags.StringVar(&option.autoscalingGroupName, "autoscaling-group-name", "", "target AutoScaling group name")
+	flags.Var(&option.autoscalingGroupName, "autoscaling-group-name", "target AutoScaling group names")
 	flags.IntVar(&option.span, "span", 30, "target span")
 	flags.Float64Var(&option.upperCPUThreshold, "upper-cpu-threshold", 0.65, "CPU upper threshold")
 	flags.Float64Var(&option.lowerCPUThreshold, "lower-cpu-threshold", 0.45, "CPU lower threshold")
@@ -96,7 +107,7 @@ func (c *CLI) ParseArgs(args []string) *Option {
 		return nil
 	}
 
-	if option.autoscalingGroupName == "" {
+	if len(option.autoscalingGroupName) == 0 {
 		log.Printf("error: specify `--autoscaling-group-name` option")
 		return nil
 	}
@@ -127,39 +138,12 @@ func (c *CLI) Run(args []string) int {
 		return ExitCodeParserFlagError
 	}
 
-	client := Client{
-		Region:               option.region,
-		AvailabilityZone:     option.availabilityZone,
-		ELBName:              option.elbName,
-		AutoScalingGroupName: option.autoscalingGroupName,
-		Span:                 option.span,
-	}
-
-	metrics, err := client.GetCurrentMetrics()
-	if err != nil {
-		log.Printf("error: %s", err)
+	result := c.run(option)
+	if result == nil {
 		return ExitCodeFatal
 	}
-
-	pc := NewPointContainer(metrics)
-
-	pretty := pc.Prettify(option)
-	for i := range pretty {
-		log.Printf("debug: %s", pretty[i])
-	}
-
-	maxRequest, err := client.GetMaxRequestCountTrackRecord()
-	if err != nil {
-		log.Printf("error: %s", err)
-		return ExitCodeFatal
-	}
-
-	log.Printf("debug: max request count track record: %.0f", *maxRequest)
-
-	judgement := NewJudgement(pc, option, *maxRequest)
-	result := judgement.Judge()
-
-	log.Printf("info: Result:")
+	//
+	log.Printf("info: ----- Result -----")
 	log.Printf("info:    %s (current: %d, desirable: %d)", result.executionType, result.currentHostCount, result.desirableHostCount)
 
 	if option.dryRun {
@@ -182,12 +166,66 @@ func (c *CLI) Run(args []string) int {
 	}
 
 	log.Printf("warn: Start updating AutoScaling values")
-	updateResult, err := client.UpdateAutoScalingGroupHostCount(result.desirableHostCount)
-	if err != nil {
-		log.Printf("error: %#v", err)
-		return ExitCodeFatal
+	for i := range option.autoscalingGroupName {
+		client := Client{
+			Region:               option.region,
+			AvailabilityZone:     option.availabilityZone,
+			ELBName:              option.elbName,
+			AutoScalingGroupName: option.autoscalingGroupName[i],
+			Span:                 option.span,
+		}
+		updateResult, err := client.UpdateAutoScalingGroupHostCount(result.desirableHostCount)
+		if err != nil {
+			log.Printf("error: %#v", err)
+			return ExitCodeFatal
+		}
+		log.Printf("info: Update Result: %#v", updateResult)
 	}
-	log.Printf("info: Update Result: %#v", updateResult)
 
 	return ExitCodeOK
+}
+
+func (c *CLI) run(option *Option) *JudgeResult {
+	var rv *JudgeResult
+
+	for i := range option.autoscalingGroupName {
+		log.Printf("info: ----- %s -----", option.autoscalingGroupName[i])
+		client := Client{
+			Region:               option.region,
+			AvailabilityZone:     option.availabilityZone,
+			ELBName:              option.elbName,
+			AutoScalingGroupName: option.autoscalingGroupName[i],
+			Span:                 option.span,
+		}
+
+		metrics, err := client.GetCurrentMetrics()
+		if err != nil {
+			log.Printf("error: %s", err)
+			return nil
+		}
+
+		pc := NewPointContainer(metrics)
+
+		pretty := pc.Prettify(option)
+		for i := range pretty {
+			log.Printf("debug: %s", pretty[i])
+		}
+
+		maxRequest, err := client.GetMaxRequestCountTrackRecord()
+		if err != nil {
+			log.Printf("error: %s", err)
+			return nil
+		}
+
+		log.Printf("debug: max request count track record: %.0f", *maxRequest)
+
+		current := NewJudgement(pc, option, *maxRequest).Judge()
+		if rv == nil {
+			rv = current
+		} else if rv.desirableHostCount < current.desirableHostCount {
+			rv = current
+		}
+	}
+
+	return rv
 }
