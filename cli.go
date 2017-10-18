@@ -142,7 +142,7 @@ func (c *CLI) Run(args []string) int {
 	if result == nil {
 		return ExitCodeFatal
 	}
-	//
+
 	log.Printf("info: ----- Result -----")
 	log.Printf("info:    %s (current: %d, desirable: %d)", result.executionType, result.currentHostCount, result.desirableHostCount)
 
